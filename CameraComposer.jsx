@@ -1,65 +1,70 @@
 /*
-CameraComposer.jsx - v0.1.2 (VIEW FIX)
+CameraComposer.jsx - v0.2
 AE 2025 ExtendScript
-Stable Camera Rig Generator
+Camera Rig + Basic Shake System
 */
 
 (function () {
-    app.beginUndoGroup("CameraComposer v0.1.2");
+    app.beginUndoGroup("CameraComposer v0.2");
 
-    // Get or create comp
     var comp = app.project.activeItem;
 
     if (!(comp && comp instanceof CompItem)) {
-        comp = app.project.items.addComp(
-            "CameraComposer_Comp",
-            1920,
-            1080,
-            1,
-            10,
-            30
-        );
+        alert("Please select a composition.");
+        return;
     }
 
-    // Open comp in viewer (FIX for visibility)
-    try {
-        comp.openInViewer();
-    } catch (e) {}
+    // =========================
+    // Core Rig
+    // =========================
 
-    // Create Controller
     var controller = comp.layers.addNull();
     controller.name = "CC_Controller";
     controller.threeDLayer = true;
     controller.property("Position").setValue([0, 0, 0]);
 
-    // Create Target
     var target = comp.layers.addNull();
     target.name = "CC_Target";
     target.threeDLayer = true;
     target.property("Position").setValue([0, 0, -2000]);
 
-    // Create Camera
     var cam = comp.layers.addCamera("CC_Camera", [comp.width / 2, comp.height / 2]);
     cam.threeDLayer = true;
 
-    // Camera follows Controller
+    // Camera follow + lookAt (NO UI CONTROL)
     cam.property("Position").expression = 
         "thisComp.layer('CC_Controller').transform.position;";
 
-    // Camera looks at Target
     cam.property("Point of Interest").expression = 
         "thisComp.layer('CC_Target').transform.position;";
 
-    // Make camera active
-    comp.activeCamera = cam;
-
-    // Disable auto orient
     try {
         cam.autoOrient = AutoOrientType.NO_AUTO_ORIENT;
     } catch (e) {}
 
+    // =========================
+    // Shake System (v0.2)
+    // =========================
+
+    // Add controls
+    var freq = controller.property("Effects").addProperty("ADBE Slider Control");
+    freq.name = "Shake Frequency";
+    freq.property("Slider").setValue(2);
+
+    var amp = controller.property("Effects").addProperty("ADBE Slider Control");
+    amp.name = "Shake Amplitude";
+    amp.property("Slider").setValue(30);
+
+    // Camera shake expression (adds to position)
+    cam.property("Position").expression =
+        "ctrl = thisComp.layer('CC_Controller');\n" +
+        "freq = ctrl.effect('Shake Frequency')('Slider');\n" +
+        "amp = ctrl.effect('Shake Amplitude')('Slider');\n" +
+        "base = thisComp.layer('CC_Controller').transform.position;\n" +
+        "base + wiggle(freq, amp);";
+
     app.endUndoGroup();
 
-    alert("CameraComposer v0.1.2:\nComp should now be visible.");
+    alert("CameraComposer v0.2:\nShake system added.");
 
 })();
