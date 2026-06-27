@@ -1,11 +1,11 @@
 /*
-CameraComposer.jsx - v0.1.1 (FIXED)
+CameraComposer.jsx - v0.1.2 (VIEW FIX)
 AE 2025 ExtendScript
 Stable Camera Rig Generator
 */
 
 (function () {
-    app.beginUndoGroup("CameraComposer v0.1.1");
+    app.beginUndoGroup("CameraComposer v0.1.2");
 
     // Get or create comp
     var comp = app.project.activeItem;
@@ -21,8 +21,10 @@ Stable Camera Rig Generator
         );
     }
 
-    // Ensure comp is active
-    app.project.activeItem = comp;
+    // Open comp in viewer (FIX for visibility)
+    try {
+        comp.openInViewer();
+    } catch (e) {}
 
     // Create Controller
     var controller = comp.layers.addNull();
@@ -40,9 +42,6 @@ Stable Camera Rig Generator
     var cam = comp.layers.addCamera("CC_Camera", [comp.width / 2, comp.height / 2]);
     cam.threeDLayer = true;
 
-    // Force camera to be visible
-    cam.property("Position").setValue([0, 0, -1000]);
-
     // Camera follows Controller
     cam.property("Position").expression = 
         "thisComp.layer('CC_Controller').transform.position;";
@@ -51,7 +50,7 @@ Stable Camera Rig Generator
     cam.property("Point of Interest").expression = 
         "thisComp.layer('CC_Target').transform.position;";
 
-    // Make this camera active
+    // Make camera active
     comp.activeCamera = cam;
 
     // Disable auto orient
@@ -61,6 +60,6 @@ Stable Camera Rig Generator
 
     app.endUndoGroup();
 
-    alert("CameraComposer v0.1.1 FIXED:\nRig created successfully.");
+    alert("CameraComposer v0.1.2:\nComp should now be visible.");
 
 })();
