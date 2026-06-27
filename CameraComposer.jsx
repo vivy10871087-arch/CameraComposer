@@ -1,11 +1,11 @@
 /*
-CameraComposer.jsx - v0.2
+CameraComposer.jsx - v0.2.1
 AE 2025 ExtendScript
-Camera Rig + Basic Shake System
+Fix: proper follow + shake layering (no overwrite)
 */
 
 (function () {
-    app.beginUndoGroup("CameraComposer v0.2");
+    app.beginUndoGroup("CameraComposer v0.2.1");
 
     var comp = app.project.activeItem;
 
@@ -31,22 +31,14 @@ Camera Rig + Basic Shake System
     var cam = comp.layers.addCamera("CC_Camera", [comp.width / 2, comp.height / 2]);
     cam.threeDLayer = true;
 
-    // Camera follow + lookAt (NO UI CONTROL)
-    cam.property("Position").expression = 
-        "thisComp.layer('CC_Controller').transform.position;";
-
-    cam.property("Point of Interest").expression = 
-        "thisComp.layer('CC_Target').transform.position;";
-
     try {
         cam.autoOrient = AutoOrientType.NO_AUTO_ORIENT;
     } catch (e) {}
 
     // =========================
-    // Shake System (v0.2)
+    // Controls
     // =========================
 
-    // Add controls
     var freq = controller.property("Effects").addProperty("ADBE Slider Control");
     freq.name = "Shake Frequency";
     freq.property("Slider").setValue(2);
@@ -55,16 +47,24 @@ Camera Rig + Basic Shake System
     amp.name = "Shake Amplitude";
     amp.property("Slider").setValue(30);
 
-    // Camera shake expression (adds to position)
+    // =========================
+    // Camera Expressions (FIXED LAYERING)
+    // =========================
+
+    // Position = follow controller + shake
     cam.property("Position").expression =
         "ctrl = thisComp.layer('CC_Controller');\n" +
         "freq = ctrl.effect('Shake Frequency')('Slider');\n" +
         "amp = ctrl.effect('Shake Amplitude')('Slider');\n" +
-        "base = thisComp.layer('CC_Controller').transform.position;\n" +
+        "base = ctrl.transform.position;\n" +
         "base + wiggle(freq, amp);";
+
+    // LookAt target (separate, NOT overwritten)
+    cam.property("Point of Interest").expression =
+        "thisComp.layer('CC_Target').transform.position;";
 
     app.endUndoGroup();
 
-    alert("CameraComposer v0.2:\nShake system added.");
+    alert("CameraComposer v0.2.1 fixed:\nShake layering corrected.");
 
 })();
