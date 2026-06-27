@@ -1,11 +1,11 @@
 /*
-CameraComposer.jsx - v0.2.1
+CameraComposer.jsx - v0.2.2
 AE 2025 ExtendScript
-Fix: proper follow + shake layering (no overwrite)
+Fix: safe effect group handling + stable shake controls
 */
 
 (function () {
-    app.beginUndoGroup("CameraComposer v0.2.1");
+    app.beginUndoGroup("CameraComposer v0.2.2");
 
     var comp = app.project.activeItem;
 
@@ -36,22 +36,35 @@ Fix: proper follow + shake layering (no overwrite)
     } catch (e) {}
 
     // =========================
-    // Controls
+    // Safe Effect Helpers
     // =========================
 
-    var freq = controller.property("Effects").addProperty("ADBE Slider Control");
-    freq.name = "Shake Frequency";
-    freq.property("Slider").setValue(2);
+    function getEffectParade(layer) {
+        return layer.property("ADBE Effect Parade");
+    }
 
-    var amp = controller.property("Effects").addProperty("ADBE Slider Control");
-    amp.name = "Shake Amplitude";
-    amp.property("Slider").setValue(30);
+    function addSlider(layer, name, value) {
+        var fx = getEffectParade(layer);
+        if (!fx) {
+            fx = layer.property("ADBE Effect Parade");
+        }
+        var ctrl = fx.addProperty("ADBE Slider Control");
+        ctrl.name = name;
+        ctrl.property("Slider").setValue(value);
+        return ctrl;
+    }
 
     // =========================
-    // Camera Expressions (FIXED LAYERING)
+    // Shake Controls
     // =========================
 
-    // Position = follow controller + shake
+    addSlider(controller, "Shake Frequency", 2);
+    addSlider(controller, "Shake Amplitude", 30);
+
+    // =========================
+    // Camera Expressions
+    // =========================
+
     cam.property("Position").expression =
         "ctrl = thisComp.layer('CC_Controller');\n" +
         "freq = ctrl.effect('Shake Frequency')('Slider');\n" +
@@ -59,12 +72,11 @@ Fix: proper follow + shake layering (no overwrite)
         "base = ctrl.transform.position;\n" +
         "base + wiggle(freq, amp);";
 
-    // LookAt target (separate, NOT overwritten)
     cam.property("Point of Interest").expression =
         "thisComp.layer('CC_Target').transform.position;";
 
     app.endUndoGroup();
 
-    alert("CameraComposer v0.2.1 fixed:\nShake layering corrected.");
+    alert("CameraComposer v0.2.2 fixed:\nSafe effects + stable shake.");
 
 })();
